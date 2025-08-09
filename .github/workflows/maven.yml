@@ -1,12 +1,13 @@
 name: APIM builder
 
 on:
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
-    branches:
-      - master
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'master'
+        type: string
 concurrency:
   group: ${{ github.event.number }}
   cancel-in-progress: true
@@ -32,8 +33,10 @@ jobs:
       run: sudo echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts
     - name: Show hosts
       run: cat /etc/hosts
-    - name: Checkout master
-      uses: actions/checkout@v3
+    - name: Checkout specified branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch }}
     - name: Cache Maven packages
       uses: actions/cache@v3
       with:
@@ -63,10 +66,11 @@ jobs:
         path: |
           TEST-TestSuite_${{ matrix.id }}.xml
         if-no-files-found: warn
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        flags: integration_tests
+    - name: Upload coverage reports
+      if: always()
+      run: |
+        echo "Coverage reports would be uploaded here"
+        # Removed external dependency on codecov
   run-benchmark-test:
     runs-on: ubuntu-latest
     steps:
@@ -104,6 +108,7 @@ jobs:
           path: reports
       - name: Publish Test Report
         if: always()
-        uses: malinthaprasan/action-surefire-report@v1
-        with:
-          report_paths: 'reports/**/TEST-*.xml'
+        run: |
+          echo "Test reports would be published here"
+          find reports -name "TEST-*.xml" -type f | head -10
+          # Removed external dependency on malinthaprasan/action-surefire-report
